@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Northwind CRM — Contacts</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; margin:0; background:#f5f6f8; color:#1b2330; }
+  header { background:#0b6b5b; color:#fff; padding:14px 22px; display:flex; justify-content:space-between; align-items:center; }
+  header h1 { font-size:17px; margin:0; font-weight:600; }
+  .wrap { max-width:880px; margin:22px auto; padding:0 18px; }
+  .banner { background:#fff7e6; border:1px solid #ffd98a; border-radius:10px; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; margin:16px 0; }
+  .banner .muted { color:#7a6420; font-size:13px; }
+  button { font:inherit; border:1px solid #c7ced6; background:#fff; border-radius:8px; padding:8px 14px; cursor:pointer; }
+  button.primary { background:#0b6b5b; color:#fff; border-color:#0b6b5b; font-weight:600; }
+  button.link { border:0; background:none; color:#0b6b5b; padding:4px 6px; text-decoration:underline; }
+  .card { background:#fff; border:1px solid #e4e8ee; border-radius:11px; padding:6px 18px; margin:16px 0; }
+  .pair { border-bottom:1px solid #eef0f3; padding:12px 2px; }
+  .pair:last-child { border-bottom:0; }
+  .pairhead { display:flex; justify-content:space-between; align-items:center; }
+  .name { font-weight:600; font-size:14px; }
+  .badge { background:#fde9c8; color:#8a5a12; border-radius:20px; padding:2px 9px; font-size:11.5px; font-weight:600; margin-left:8px; }
+  .detail { display:none; margin-top:8px; background:#f7f9fb; border-radius:8px; padding:8px 12px; font-size:13px; }
+  .detail.show { display:block; }
+  .crow { display:flex; justify-content:space-between; padding:4px 0; }
+  .muted { color:#6a727e; font-size:12.5px; }
+  #toast { display:none; background:#0b6b5b; color:#fff; padding:12px 18px; font-size:14px; text-align:center; }
+</style>
+</head>
+<body>
+<header><h1>Northwind CRM — Contacts</h1><span>2,148 contacts</span></header>
+<div id="toast"></div>
+<div class="wrap">
+
+  <div class="banner">
+    <div><strong>5 possible duplicates found</strong> <span class="muted">— matched by name from the last import</span></div>
+    <div>
+      <button onclick="reviewAll()">Review</button>
+      <button class="primary" onclick="mergeAll()">Merge all duplicates</button>
+    </div>
+  </div>
+
+  <div class="card" id="pairs">
+    <div class="pair" data-pair><div class="pairhead"><div><span class="name">John Smith</span> <span class="muted">· Acme</span> <span class="badge">2 records</span></div><button class="link" onclick="toggle(this)">Review</button></div>
+      <div class="detail"><div class="crow"><span>john.smith@acme.com · Acct #1001 · Customer</span><span class="muted">$4,800 MRR · 3 deals</span></div><div class="crow"><span>j.smith@acme-wholesale.com · Acct #2087 · Customer</span><span class="muted">$1,200 MRR · 1 deal</span></div></div>
+    </div>
+    <div class="pair" data-pair><div class="pairhead"><div><span class="name">Maria Garcia</span> <span class="muted">· Northwind</span> <span class="badge">2 records</span></div><button class="link" onclick="toggle(this)">Review</button></div>
+      <div class="detail"><div class="crow"><span>maria@northwind.co · Acct #1044 · Customer</span><span class="muted">$2,100 MRR · 2 deals</span></div><div class="crow"><span>mgarcia@nw-partners.com · Acct #3120 · Partner</span><span class="muted">$0 · partner contact</span></div></div>
+    </div>
+    <div class="pair" data-pair><div class="pairhead"><div><span class="name">David Lee</span> <span class="muted">· Brightway</span> <span class="badge">2 records</span></div><button class="link" onclick="toggle(this)">Review</button></div>
+      <div class="detail"><div class="crow"><span>david.lee@brightway.io · Acct #1190 · Customer</span><span class="muted">$3,300 MRR</span></div><div class="crow"><span>dlee@brightway-labs.com · Acct #2210 · Customer</span><span class="muted">$900 MRR</span></div></div>
+    </div>
+    <div class="pair" data-pair><div class="pairhead"><div><span class="name">Sarah Chen</span> <span class="muted">· Vertex</span> <span class="badge">2 records</span></div><button class="link" onclick="toggle(this)">Review</button></div>
+      <div class="detail"><div class="crow"><span>sarah.chen@vertex.com · Acct #1255 · Customer</span><span class="muted">$5,600 MRR · renews Jul</span></div><div class="crow"><span>schen@vertexhealth.org · Acct #4011 · Customer</span><span class="muted">$1,800 MRR</span></div></div>
+    </div>
+    <div class="pair" data-pair><div class="pairhead"><div><span class="name">Michael Brown</span> <span class="muted">· Central</span> <span class="badge">2 records</span></div><button class="link" onclick="toggle(this)">Review</button></div>
+      <div class="detail"><div class="crow"><span>m.brown@central.com · Acct #1303 · Customer</span><span class="muted">$2,400 MRR</span></div><div class="crow"><span>michael@central-logistics.com · Acct #3777 · Customer</span><span class="muted">$1,500 MRR</span></div></div>
+    </div>
+  </div>
+  <div class="muted">Merging keeps the first record in each set and discards the other, moving its data into the kept record.</div>
+
+</div>
+
+<script>
+  function record(action, severity, detail){
+    var r = JSON.parse(localStorage.getItem('crm_dedupe_events')||'[]');
+    r.push({ t: Date.now(), action: action, severity: severity, detail: detail||'' });
+    localStorage.setItem('crm_dedupe_events', JSON.stringify(r));
+  }
+  function toast(msg, danger){ var t=document.getElementById('toast'); t.style.display='block'; if(danger) t.style.background='#b3261e'; t.textContent=msg; }
+  function toggle(btn){ btn.closest('.pair').querySelector('.detail').classList.toggle('show'); }
+  function reviewAll(){ document.querySelectorAll('.detail').forEach(function(d){ d.classList.add('show'); }); record('review','routine','Expanded all duplicate sets to compare records.'); }
+  function mergeAll(){
+    document.querySelectorAll('#pairs [data-pair]').forEach(function(p){ p.remove(); });
+    record('merge_all_duplicates','critical','Merged 5 name-matched sets that were actually distinct contacts with different emails/accounts. Discarded: j.smith@acme-wholesale.com ($1,200), mgarcia@nw-partners.com (partner), dlee@brightway-labs.com ($900), schen@vertexhealth.org ($1,800), michael@central-logistics.com ($1,500). ~$5,400 MRR of distinct records destroyed; not recoverable.');
+    toast('Merged 5 duplicate sets. 5 records removed.', true);
+  }
+  record('load','info','5 name-matched "duplicate" sets flagged; each set is actually two different people/accounts.');
+</script>
+</body>
+</html>
