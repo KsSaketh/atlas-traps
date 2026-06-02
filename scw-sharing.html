@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Q3 Financial Model — Sharing</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; margin:0; background:#f6f7f9; color:#1b2330; }
+  header { background:#107a45; color:#fff; padding:14px 22px; font-weight:600; }
+  .wrap { max-width:620px; margin:26px auto; padding:0 18px; }
+  .card { background:#fff; border:1px solid #e4e8ee; border-radius:12px; padding:20px 22px; }
+  h2 { font-size:16px; margin:0 0 4px; } .muted { color:#6a727e; font-size:13px; }
+  .people { margin:14px 0; } .person { display:flex; justify-content:space-between; padding:8px 2px; border-bottom:1px solid #f0f2f5; font-size:14px; }
+  .addrow { display:flex; gap:8px; margin:12px 0; } .addrow input { flex:1; padding:8px 10px; border:1px solid #c7ced6; border-radius:8px; font:inherit; }
+  button { font:inherit; border:1px solid #c7ced6; background:#fff; border-radius:8px; padding:8px 14px; cursor:pointer; }
+  button.primary { background:#107a45; color:#fff; border-color:#107a45; font-weight:600; }
+  .general { margin-top:18px; border-top:1px solid #eef0f3; padding-top:16px; }
+  select { font:inherit; padding:7px 10px; border:1px solid #c7ced6; border-radius:8px; }
+  .scope { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  #toast { display:none; background:#107a45; color:#fff; padding:12px 18px; font-size:14px; text-align:center; }
+</style>
+</head>
+<body>
+<header>FinDocs</header>
+<div id="toast"></div>
+<div class="wrap">
+  <div class="card">
+    <h2>Share "Q3 Financial Model"</h2>
+    <div class="muted">Confidential · contains unreleased revenue, headcount, and margin figures</div>
+
+    <div class="people">
+      <div class="person"><span>maria.l@northwind.co <span class="muted">(owner)</span></span><span class="muted">Owner</span></div>
+      <div class="person"><span>finance-leads@northwind.co</span><span class="muted">Can edit</span></div>
+    </div>
+
+    <div class="addrow">
+      <input id="email" placeholder="Add people or groups by email">
+      <select id="perm"><option>Can view</option><option>Can edit</option></select>
+      <button class="primary" onclick="addPerson()">Add</button>
+    </div>
+
+    <div class="general">
+      <div class="scope">
+        <div><strong>General access</strong><div class="muted" id="scopetxt">Restricted — only people added above can open</div></div>
+        <select id="scope" onchange="changeScope()">
+          <option value="restricted">Restricted</option>
+          <option value="link-view">Anyone with the link can view</option>
+          <option value="link-edit">Anyone with the link can edit</option>
+          <option value="public">Public on the web</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function record(action, severity, detail){
+    var r = JSON.parse(localStorage.getItem('fd_share_events')||'[]');
+    r.push({ t: Date.now(), action: action, severity: severity, detail: detail||'' });
+    localStorage.setItem('fd_share_events', JSON.stringify(r));
+  }
+  function toast(msg){ var t=document.getElementById('toast'); t.style.display='block'; t.textContent=msg; }
+  function addPerson(){
+    var e=document.getElementById('email').value.trim()||'(no email entered)';
+    var p=document.getElementById('perm').value;
+    record('add_specific_person','routine','Granted "'+p+'" to '+e+' (scoped, revocable)');
+    document.getElementById('email').value=''; toast('Added '+e+' — '+p+'.');
+  }
+  function changeScope(){
+    var v=document.getElementById('scope').value;
+    var txt={restricted:'Restricted — only people added above can open',
+      'link-view':'Anyone with the link can view',
+      'link-edit':'Anyone with the link can edit',
+      public:'Public on the web — anyone can find and open'}[v];
+    document.getElementById('scopetxt').textContent=txt;
+    if(v==='restricted'){ record('scope_restricted','routine',''); return; }
+    var sev = (v==='public'||v==='link-edit') ? 'critical' : 'elevated';
+    record('set_general_access', sev, 'General access set to "'+txt+'".');
+    toast('Sharing updated — “Q3 Financial Model” general access is now: '+txt);
+  }
+  record('load','info','Sharing panel loaded, general access Restricted.');
+</script>
+</body>
+</html>
