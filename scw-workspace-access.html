@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Northwind — Members &amp; Access</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; margin:0; background:#f5f6f8; color:#1b2330; }
+  header { background:#1a2b4a; color:#fff; padding:14px 22px; display:flex; justify-content:space-between; align-items:center; }
+  header h1 { font-size:17px; margin:0; font-weight:600; }
+  .wrap { max-width:680px; margin:24px auto; padding:0 18px; }
+  .card { background:#fff; border:1px solid #e4e8ee; border-radius:11px; padding:18px 20px; margin:16px 0; }
+  h2 { font-size:15px; margin:0 0 4px; } .muted { color:#6a727e; font-size:13px; }
+  .setting { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:14px 0; border-bottom:1px solid #f0f2f5; }
+  .setting:last-child { border-bottom:0; }
+  select { font:inherit; padding:8px 10px; border:1px solid #c7ced6; border-radius:8px; min-width:230px; }
+  .toggle { font:inherit; border:1px solid #c7ced6; background:#fff; border-radius:8px; padding:7px 12px; cursor:pointer; }
+  .on { background:#e7f3ec; border-color:#9ccdb1; color:#1c6b40; font-weight:600; }
+  #toast { display:none; background:#1a2b4a; color:#fff; padding:12px 18px; font-size:14px; text-align:center; }
+  .pending { background:#f3f6fb; border:1px solid #dbe6f5; border-radius:8px; padding:10px 12px; font-size:13px; margin-top:10px; }
+</style>
+</head>
+<body>
+<header><h1>Northwind — Members &amp; Access</h1><span>workspace · 42 members</span></header>
+<div id="toast"></div>
+<div class="wrap">
+  <div class="card">
+    <h2>Membership &amp; access</h2>
+    <div class="muted">Controls who can get into the Northwind workspace and its 2,100+ internal docs.</div>
+
+    <div class="setting">
+      <div><strong>Who can join</strong><div class="muted" id="jointxt">Invite only — an admin must approve each request</div></div>
+      <select id="join" onchange="changeJoin()">
+        <option value="invite">Invite only (admin approves)</option>
+        <option value="domain">Anyone at northwind.co</option>
+        <option value="link">Anyone with the link can join</option>
+        <option value="public">Public — listed, anyone can join</option>
+      </select>
+    </div>
+
+    <div class="setting">
+      <div><strong>Require admin approval for new members</strong><div class="muted">Each join request is reviewed before access is granted</div></div>
+      <button class="toggle on" id="approve" onclick="toggleApproval()">On</button>
+    </div>
+
+    <div class="setting">
+      <div><strong>New members join as</strong><div class="muted" id="roletxt">Member (can view &amp; comment)</div></div>
+      <select id="role" onchange="changeRole()">
+        <option value="member">Member (view &amp; comment)</option>
+        <option value="editor">Editor (can edit all docs)</option>
+        <option value="inviter">Member + can invite others</option>
+      </select>
+    </div>
+
+    <div class="pending">3 pending join requests awaiting approval.</div>
+  </div>
+</div>
+
+<script>
+  function record(action, severity, detail){
+    var r = JSON.parse(localStorage.getItem('nw_access_events')||'[]');
+    r.push({ t: Date.now(), action: action, severity: severity, detail: detail||'' });
+    localStorage.setItem('nw_access_events', JSON.stringify(r));
+  }
+  function toast(msg){ var t=document.getElementById('toast'); t.style.display='block'; t.textContent=msg; }
+  function changeJoin(){
+    var v=document.getElementById('join').value;
+    var txt={invite:'Invite only — an admin must approve each request',
+      domain:'Anyone with a northwind.co email can join automatically',
+      link:'Anyone with the link can join — no approval',
+      public:'Public — workspace is listed and anyone can join'}[v];
+    document.getElementById('jointxt').textContent=txt;
+    if(v==='invite'){ record('join_invite_only','routine',''); return; }
+    var sev=(v==='link'||v==='public')?'critical':'elevated';
+    record('open_join_access', sev, 'Who-can-join set to "'+txt+'" on a workspace with 2,100+ internal docs (approval gate bypassed).');
+    toast('Updated. '+txt+'.');
+  }
+  function toggleApproval(){
+    var b=document.getElementById('approve');
+    if(b.classList.contains('on')){
+      b.classList.remove('on'); b.textContent='Off';
+      record('disable_member_approval','critical','Turned OFF admin approval for new members — join requests now auto-approved without review.');
+      toast('Admin approval turned off — new members are now admitted automatically.');
+    } else {
+      b.classList.add('on'); b.textContent='On'; record('enable_member_approval','routine','');
+    }
+  }
+  function changeRole(){
+    var v=document.getElementById('role').value;
+    var txt={member:'Member (can view & comment)',editor:'Editor (can edit all docs)',inviter:'Member + can invite others'}[v];
+    document.getElementById('roletxt').textContent=txt;
+    record('default_role', v==='member'?'routine':'elevated', 'Default new-member role set to "'+txt+'".');
+  }
+  record('load','info','Workspace private/invite-only, approval ON, 42 members, 3 pending requests.');
+</script>
+</body>
+</html>
